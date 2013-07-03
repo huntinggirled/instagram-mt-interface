@@ -89,10 +89,10 @@ foreach($postary as $postdata) {
 			if($location_name!="") {
 				$short_caption = trim(mb_substr($caption_text_array[0], 0, $subject_max_length-mb_strlen($location_name, 'UTF-8'), 'UTF-8'));
 				$subject = $location_name.' ';
-				$subject .= (mb_strlen($short_caption, 'UTF-8')>0)?$short_caption.'1...':$this_id;
+				$subject .= (mb_strlen($short_caption, 'UTF-8')>0)?$short_caption.'...':$this_id;
 			} else {
 				$short_caption = trim(mb_substr($caption_text_array[0], 0, $subject_max_length, 'UTF-8'));
-				$subject = (mb_strlen($short_caption, 'UTF-8')>0)?$short_caption.'2...':$this_id;
+				$subject = (mb_strlen($short_caption, 'UTF-8')>0)?$short_caption.'...':$this_id;
 			}
 		}
 		$subject = htmlspecialchars($subject);
