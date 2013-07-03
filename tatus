@@ -1,0 +1,30 @@
+[33mcommit 67f62d375a4dc592d07f4c38917a87d7da42cc52[m
+Author: huntinggirled <huntinggirled@gmail.com>
+Date:   Wed Jul 3 16:52:20 2013 +0900
+
+    delete debug message.
+
+[33mcommit a2bf98d9711a1b3d892e03270d0233059515b3da[m
+Merge: 9f0366a 5cfda7c
+Author: huntinggirled <huntinggirled@gmail.com>
+Date:   Tue Jul 2 19:40:55 2013 +0900
+
+    Merge branch 'master' of github.com:huntinggirled/instagram-mt-interface
+
+[33mcommit 9f0366acc4a18a7fd8e94cc99789265c8c05a80e[m
+Author: huntinggirled <huntinggirled@gmail.com>
+Date:   Tue Jul 2 19:38:24 2013 +0900
+
+    add accesstoken.php
+
+[33mcommit 5cfda7c415ee9bb3c535ae9766c574c3dd01c8c2[m
+Author: huntinggirled <huntinggirled@gmail.com>
+Date:   Tue Jul 2 19:26:17 2013 +0900
+
+    Create README.md
+
+[33mcommit 4d08d3e6202f275ec272ad3628ee14fde5baf36c[m
+Author: huntinggirled <huntinggirled@gmail.com>
+Date:   Tue Jul 2 19:19:22 2013 +0900
+
+    init
