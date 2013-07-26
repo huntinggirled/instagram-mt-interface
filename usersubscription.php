@@ -48,6 +48,7 @@ foreach($postary as $postdata) {
 		continue;
 	}
 	$jsonary = json_decode($json, true);
+	$countfile = "count.txt";
 	for($i=$read_count-1; $i>=0; $i--) {
 		$jsondata = $jsonary['data'][$i];
 		if(!$jsondata) {
@@ -59,9 +60,22 @@ foreach($postary as $postdata) {
 		$id = $jsondata['id'];
 		$this_id_ary = explode("_", $id);
 		$this_id = $this_id_ary[0];
-		$recent_id = file_get_contents("count.txt");
-		if($recent_id===FLASE || $this_id<=$recent_id) {
+		// $recent_id = file_get_contents($countfile);
+		// if($recent_id===FLASE || $this_id<=$recent_id) {
+		// 	//file_put_contents("log.txt", date("Y-m-d H:i:s")." SUBSCRIPTION JSON DATA DUPLICATE SKIP.\n", FILE_APPEND | LOCK_EX);
+		// 	continue;
+		// }
+		$recent_id = 0;
+		$fp = @fopen($countfile, "r+");
+		if($fp && @flock($fp, LOCK_EX)) {
+			$recent_id = fgets($fp);
+		}
+		if($recent_id==0 || $recent_id===FLASE || $this_id<=$recent_id) {
 			//file_put_contents("log.txt", date("Y-m-d H:i:s")." SUBSCRIPTION JSON DATA DUPLICATE SKIP.\n", FILE_APPEND | LOCK_EX);
+			if($fp) {
+				flock($fp, LOCK_UN);
+				fclose($fp);
+			}
 			continue;
 		}
 
@@ -143,7 +157,14 @@ foreach($postary as $postdata) {
 		if($jsondata['videos']['standard_resolution']['url']) {
 			unlink($videofilename);
 		}
-		file_put_contents("count.txt", $this_id, LOCK_EX);
+		//file_put_contents($countfile, $this_id, LOCK_EX);
+		if($fp) {
+			ftruncate($fp, 0);
+			fwrite($fp, $this_id);
+			fflush($fp);
+			flock($fp, LOCK_UN);
+			fclose($fp);
+		}
 		//print $this_id."\n";
 		print($contents);
 		if(--$write<=0) {
@@ -152,4 +173,4 @@ foreach($postary as $postdata) {
 	}
 }
 //exec('cd /virtual/girled/public_html/mt5; ./tools/run-periodic-tasks');
-?>	
+?>
