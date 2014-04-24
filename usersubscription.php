@@ -68,7 +68,7 @@ foreach($postary as $postdata) {
 		$recent_id = 0;
 		$fp = @fopen($countfile, "r+");
 		if($fp && @flock($fp, LOCK_EX)) {
-			$recent_id = fgets($fp);
+			$recent_id = fgetss($fp);
 		}
 		if($recent_id==0 || $recent_id===FLASE || $this_id<=$recent_id) {
 			//file_put_contents("log.txt", date("Y-m-d H:i:s")." SUBSCRIPTION JSON DATA DUPLICATE SKIP.\n", FILE_APPEND | LOCK_EX);
@@ -172,5 +172,5 @@ foreach($postary as $postdata) {
 		}
 	}
 }
-//exec('cd /virtual/girled/public_html/mt5; ./tools/run-periodic-tasks');
-?>
+//exec('cd /virtual/girled/public_html/mt; ./tools/run-periodic-tasks');
+?>	
