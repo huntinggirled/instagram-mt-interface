@@ -1,5 +1,6 @@
 <?php
 
+$ini = parse_ini_file('config.ini');
 $client_id = $ini['client_id'];
 $client_secret = $ini['client_secret'];
 $redirect_uri = $ini['redirect_uri'];
