@@ -1,4 +1,5 @@
 <?php
+
 $post = file_get_contents('php://input');
 if($post===FALSE || $post=='') {
 	die("REQUEST ERROR");
@@ -38,6 +39,7 @@ foreach($postary as $postdata) {
 		$timeout_second = 5;
 		ini_set('default_socket_timeout', $timeout_second);
 		$json = @file_get_contents($endpoint);
+		//file_put_contents("log.txt", date("Y-m-d H:i:s")." ".$json."\n", FILE_APPEND | LOCK_EX);
 		// 設定を戻す
 		ini_set('default_socket_timeout', $org_timeout);
 //		if(!($json===false)) break;
@@ -85,6 +87,7 @@ foreach($postary as $postdata) {
 		$location_id = $jsondata['location']['id'];
 		$location_name = $jsondata['location']['name'];
 		if($location_name!="") {
+			$location_name = ereg_replace("　"," ",$location_name);
 			$latitude = $jsondata['location']['latitude'];
 			$longitude = $jsondata['location']['longitude'];
 		} else {
@@ -95,25 +98,68 @@ foreach($postary as $postdata) {
 		$filter = $jsondata['filter'];
 
 		// 件名
-		$subject_max_length = 36;
-		$caption_text_array = explode("\n", $caption_text, 2);
-		if(mb_strlen($location_name, 'UTF-8')>$subject_max_length) {
-			$subject = $location_name.' '.trim(mb_substr($caption_text_array[0], 0, 6, 'UTF-8')).'...';
-		} else {
-			if($location_name!="") {
-				$short_caption = trim(mb_substr($caption_text_array[0], 0, $subject_max_length-mb_strlen($location_name, 'UTF-8'), 'UTF-8'));
-				$subject = $location_name.' ';
-				$subject .= (mb_strlen($short_caption, 'UTF-8')>0)?$short_caption.'...':'';
+		// $subject_max_length = 36;
+		// $caption_text_array = explode("\n", $caption_text, 2);
+		// if(mb_strlen($location_name, 'UTF-8')>$subject_max_length) {
+		// 	$subject = $location_name." ".trim(mb_substr($caption_text_array[0], 0, 6, 'UTF-8')).'...';
+		// } else {
+		// 	if($location_name!="") {
+		// 		$short_caption = trim(mb_substr($caption_text_array[0], 0, $subject_max_length-mb_strlen($location_name, 'UTF-8'), 'UTF-8'));
+		// 		$subject = $location_name." ";
+		// 		$subject .= (mb_strlen($short_caption, 'UTF-8')>0)?$short_caption.'...':'';
+		// 	} else {
+		// 		$short_caption = trim(mb_substr($caption_text_array[0], 0, $subject_max_length, 'UTF-8'));
+		// 		$subject = (mb_strlen($short_caption, 'UTF-8')>0)?$short_caption.'...':'';
+		// 	}
+		// }
+
+		//2014/07/25 キーフレーズ抽出、タイトルに付加
+		$subject_max_length = $ini['subjectmaxlength'];
+		$caption_text_string = str_replace(array("\r\n","\r","\n"), " ", $caption_text);
+		$caption_text_string = strip_tags($caption_text_string);
+		$caption_text_string = trim($caption_text_string);
+		if($location_name!="") {
+			if(mb_strlen($location_name, 'UTF-8')>=$subject_max_length) {
+				$append_length = 6;
+				$subject = trim(mb_substr($location_name, 0, $subject_max_length-($append_length+1), 'UTF-8'))." ".trim(mb_substr($caption_text_string, 0, $append_length, 'UTF-8'));
+				$subject = trim($subject)."...";
 			} else {
-				$short_caption = trim(mb_substr($caption_text_array[0], 0, $subject_max_length, 'UTF-8'));
-				$subject = (mb_strlen($short_caption, 'UTF-8')>0)?$short_caption.'...':'';
+				$subject = $location_name;
 			}
 		}
-		$subject = htmlspecialchars($subject);
-		$caption_text = htmlspecialchars($caption_text);
+		$sentence = $caption_text_string;
+		$output = "xml";
+		$callback = "";
+		require(dirname(__FILE__).'/../yahoo/keyphrase.php');
+		$Keyphrase = new Keyphrase();
+		$response = $Keyphrase->getKeyphrase($sentence, $output, $callback);
+		//file_put_contents("log.txt", date("Y-m-d H:i:s")." ".$response."\n", FILE_APPEND | LOCK_EX);
+		$responsexml = simplexml_load_string($response);
+		$result_num = count($responsexml->Result);
+		for($i=0; $i<$result_num; $i++){
+			$result = $responsexml->Result[$i];
+			$keyphrase = $result->Keyphrase;
+			if(mb_strlen($subject." ".$keyphrase, 'UTF-8')>=$subject_max_length) {
+				continue;
+			}
+			if($subject!="") {
+				$subject = trim($subject)." ";
+			}
+			$subject .= $keyphrase;
+		}
+		if((mb_strlen($subject, 'UTF-8')+4)<$subject_max_length) {
+			if($subject!="") {
+				$subject = trim($subject)." ";
+			}
+			$subject .= trim(mb_substr($caption_text_string, 0, $subject_max_length-(mb_strlen($subject, 'UTF-8')+4), 'UTF-8'));
+			$subject = trim($subject)."...";
+		}
+
+		$subject = htmlspecialchars($subject, ENT_QUOTES);
+		$location_name = htmlspecialchars($location_name, ENT_QUOTES);
+		$caption_text = htmlspecialchars($caption_text, ENT_QUOTES);
 		$caption_text = '<p>'.$caption_text.'</p>';
 		$caption_text = ereg_replace("\r|\n","</p><p>",$caption_text);
-		$location_name = htmlspecialchars($location_name);
 		// 本文
 		$instadata = "[instadata]$latitude,$longitude,$location_id,$location_name,$link,$filter,$id";
 		$body = $caption_text.$instadata;
@@ -126,6 +172,7 @@ foreach($postary as $postdata) {
 		 	'title' => $subject,
 		 	'text' => $body,
 		 	'status' => ($ini['status'])?$ini['status']:$status,
+		 	'categoryid' => $ini['categoryid'],
 		);
 		// ファイル作成
 		$filepatharray = array();
@@ -173,4 +220,5 @@ foreach($postary as $postdata) {
 	}
 }
 //exec('cd /virtual/girled/public_html/mt; ./tools/run-periodic-tasks');
-?>	
+
+?>
