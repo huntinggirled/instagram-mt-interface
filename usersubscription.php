@@ -138,14 +138,14 @@ foreach($postary as $postdata) {
 		$result_num = count($responsexml->Result);
 		for($i=0; $i<$result_num; $i++){
 			$result = $responsexml->Result[$i];
-			$keyphrase = $result->Keyphrase;
-			if(mb_strlen($subject." ".$keyphrase, 'UTF-8')>=$subject_max_length) {
-				continue;
+			$keyphrase = trim($result->Keyphrase);
+			$keyphrase = stripcslashes($keyphrase);
+			if(mb_strlen($subject." ".$keyphrase, 'UTF-8')<$subject_max_length) {
+				if($subject!="") {
+					$subject = trim($subject)." ";
+				}
+				$subject .= $keyphrase;
 			}
-			if($subject!="") {
-				$subject = trim($subject)." ";
-			}
-			$subject .= $keyphrase;
 		}
 		if((mb_strlen($subject, 'UTF-8')+4)<$subject_max_length) {
 			if($subject!="") {
