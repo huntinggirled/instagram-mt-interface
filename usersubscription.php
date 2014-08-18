@@ -139,7 +139,6 @@ foreach($postary as $postdata) {
 		for($i=0; $i<$result_num; $i++){
 			$result = $responsexml->Result[$i];
 			$keyphrase = trim($result->Keyphrase);
-			$keyphrase = stripcslashes($keyphrase);
 			if(mb_strlen($subject." ".$keyphrase, 'UTF-8')<$subject_max_length) {
 				if($subject!="") {
 					$subject = trim($subject)." ";
@@ -155,8 +154,8 @@ foreach($postary as $postdata) {
 			$subject = trim($subject)."...";
 		}
 
-		$subject = htmlspecialchars($subject, ENT_QUOTES);
-		$location_name = htmlspecialchars($location_name, ENT_QUOTES);
+		//$subject = htmlspecialchars($subject, ENT_QUOTES);
+		//$location_name = htmlspecialchars($location_name, ENT_QUOTES);
 		$caption_text = htmlspecialchars($caption_text, ENT_QUOTES);
 		$caption_text = '<p>'.$caption_text.'</p>';
 		$caption_text = ereg_replace("\r|\n","</p><p>",$caption_text);
