@@ -1,24 +1,39 @@
 <?php
-
+$ini = parse_ini_file('config.ini');
+//GETリクエスト元ログ取得
+file_put_contents("log.txt", date("Y-m-d H:i:s")." ".$_SERVER["REMOTE_ADDR"]." ".gethostbyaddr($_SERVER["REMOTE_ADDR"])." GET:".$_SERVER["QUERY_STRING"]."\n", FILE_APPEND | LOCK_EX);
+//登録時の、Instagram側の確認用アクセスを受ける
+if($_SERVER['REQUEST_METHOD']=='GET' && isset($_GET['hub_verify_token'])&&$_GET['hub_verify_token']==$ini['verify_token'] && isset($_GET['hub_challenge']) && isset($_GET['hub_mode'])&&$_GET['hub_mode']=='subscribe') {
+	file_put_contents("log.txt", date("Y-m-d H:i:s")." RETURN HUB_CHALLENGE:".$_GET['hub_challenge']."\n", FILE_APPEND | LOCK_EX);
+	//確認用のキーを返却する
+	//header("HTTP/1.1 200 OK");
+	//header("Status: 200");
+	//header("Content-Type: text/plain");
+	echo $_GET['hub_challenge'];
+	exit;
+}
 $post = file_get_contents('php://input');
+//POSTリクエスト元ログ取得
+file_put_contents("log.txt", date("Y-m-d H:i:s")." POST:".$post."\n", FILE_APPEND | LOCK_EX);
 if($post===FALSE || $post=='') {
+	file_put_contents("log.txt", date("Y-m-d H:i:s")." REQUEST ERROR\n", FILE_APPEND | LOCK_EX);
 	die("REQUEST ERROR");
 }
 $postary = json_decode($post, true);
-
-$ini = parse_ini_file('config.ini');
-
 foreach($postary as $postdata) {
 	if(!$postdata || $postdata['object']!='user' || $postdata['changed_aspect']!='media') {
-		//die("SUBSCRIPTION POST ERROR");
-		continue;
+		file_put_contents("log.txt", date("Y-m-d H:i:s")." SUBSCRIPTION POST ERROR\n", FILE_APPEND | LOCK_EX);
+		//continue;
+		die("SUBSCRIPTION POST ERROR");
 	}
 	// 登録したsubscription_id
-	$subscription_id = $ini['subscriptionid'];
-	if($postdata['subscription_id']!=$subscription_id) {
-		//die("SUBSCRIPTION ID ERROR");
-		continue;
-	}
+//2016-08-23
+//	$subscription_id = $ini['subscription_id'];
+//	if($postdata['subscription_id']!=$subscription_id) {
+//		file_put_contents("log.txt", date("Y-m-d H:i:s")." SUBSCRIPTION ID ERROR\n", FILE_APPEND | LOCK_EX);
+//		//continue;
+//		die("SUBSCRIPTION ID ERROR");
+//	}
 	// 投稿ID(user_id)
 	$object_id = $postdata['object_id'];
 	// Instagramのuser_id
@@ -39,7 +54,8 @@ foreach($postary as $postdata) {
 		$timeout_second = 5;
 		ini_set('default_socket_timeout', $timeout_second);
 		$json = @file_get_contents($endpoint);
-		//file_put_contents("log.txt", date("Y-m-d H:i:s")." ".$json."\n", FILE_APPEND | LOCK_EX);
+		//JSON内容確認
+		//file_put_contents("log.txt", date("Y-m-d H:i:s")." $json:".$json."\n", FILE_APPEND | LOCK_EX);
 		// 設定を戻す
 		ini_set('default_socket_timeout', $org_timeout);
 //		if(!($json===false)) break;
@@ -55,7 +71,7 @@ foreach($postary as $postdata) {
 		$jsondata = $jsonary['data'][$i];
 		if(!$jsondata) {
 			//die("SUBSCRIPTION JSON DATA ERROR");
-			file_put_contents("log.txt", date("Y-m-d H:i:s")." SUBSCRIPTION JSON DATA ERROR.\n", FILE_APPEND | LOCK_EX);
+			file_put_contents("log.txt", date("Y-m-d H:i:s")." SUBSCRIPTION JSON DATA ERROR. jsondata:".json_encode($jsondata)."\n", FILE_APPEND | LOCK_EX);
 			continue;
 		}
 		// 重複取得チェック
@@ -73,13 +89,14 @@ foreach($postary as $postdata) {
 			$recent_id = fgetss($fp);
 		}
 		if($recent_id==0 || $recent_id===FLASE || $this_id<=$recent_id) {
-			//file_put_contents("log.txt", date("Y-m-d H:i:s")." SUBSCRIPTION JSON DATA DUPLICATE SKIP.\n", FILE_APPEND | LOCK_EX);
+			//file_put_contents("log.txt", date("Y-m-d H:i:s")." SUBSCRIPTION JSON DATA DUPLICATE SKIP. recent_id:".$recent_id." this_id:".$this_id."\n", FILE_APPEND | LOCK_EX);
 			if($fp) {
 				flock($fp, LOCK_UN);
 				fclose($fp);
 			}
 			continue;
 		}
+		//file_put_contents("log.txt", date("Y-m-d H:i:s")." SUBSCRIPTION JSON DATA NO SKIP. recent_id:".$recent_id." this_id:".$this_id."\n", FILE_APPEND | LOCK_EX);
 
 		// 各種情報データ
 		$caption_text = $jsondata['caption']['text'];
@@ -160,6 +177,7 @@ foreach($postary as $postdata) {
 		$caption_text = '<p>'.$caption_text.'</p>';
 		$caption_text = ereg_replace("\r|\n","</p><p>",$caption_text);
 		// 本文
+		$location_name = ereg_replace(",","，",$location_name);
 		$instadata = "[instadata]$latitude,$longitude,$location_id,$location_name,$link,$filter,$id";
 		$body = $caption_text.$instadata;
 		//$body = ereg_replace("\r|\n","<br />",$body);//Gmail（HTMLメール）対策
@@ -199,7 +217,7 @@ foreach($postary as $postdata) {
 		file_put_contents("log.txt", date("Y-m-d H:i:s")." ".$subject." ".$logbody."\n", FILE_APPEND | LOCK_EX);
 		if($jsondata['images']['standard_resolution']['url']) {
 			unlink($imagefilename);
-		}	
+		}
 		if($jsondata['videos']['standard_resolution']['url']) {
 			unlink($videofilename);
 		}
